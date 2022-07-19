@@ -43,26 +43,28 @@ struct check_shapes
     check_shapes(const shape* b, const shape* e, const std::string& n, const bool d = false)
         : begin(b), end(e), name(n), dynamic_allowed(d)
     {
+        check_dynamic();
     }
 
     template <class Op>
     check_shapes(const shape* b, const shape* e, const Op& op, const bool d = false)
         : begin(b), end(e), name(op.name()), dynamic_allowed(d)
     {
+        check_dynamic();
     }
 
     template <class Op>
     check_shapes(const std::vector<shape>& s, const Op& op, const bool d = false)
         : begin(s.data()), end(s.data() + s.size()), name(op.name()), dynamic_allowed(d)
     {
+        check_dynamic();
     }
 
-    ~check_shapes()
+    void check_dynamic() const
     {
         if(not dynamic_allowed and this->any_of([&](const shape& s) { return s.dynamic(); }))
         {
-            std::cerr << prefix() << "Dynamic shapes not supported" << std::endl;
-            std::abort();
+            MIGRAPHX_THROW(prefix() + "Dynamic shapes not supported");
         }
     }
 
@@ -184,6 +186,9 @@ struct check_shapes
     {
         if(!this->same([](const shape& s) { return s.max_lens(); }))
             MIGRAPHX_THROW(prefix() + "Dimensions do not match");
+        if(this->any_of([&](const shape& s) { return s.dynamic(); }))
+            if(!this->same([](const shape& s) { return s.min_lens(); }))
+                MIGRAPHX_THROW(prefix() + "Min dynamic dimensions do not match");
         return *this;
     }
 
