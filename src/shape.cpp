@@ -577,5 +577,15 @@ void migraphx_from_value(const value& v, shape& s)
     }
 }
 
+shape fixed_to_dynamic(const shape& s)
+{
+    auto fixed_lens = s.lens();
+    std::vector<shape::dynamic_dimension> dyn_dims;
+    std::transform(fixed_lens.cbegin(), fixed_lens.cend(), dyn_dims.begin(), [](auto l) {
+        return shape::dynamic_dimension{l, l, 0};
+    });
+    return {s.type(), dyn_dims};
+}
+
 } // namespace MIGRAPHX_INLINE_NS
 } // namespace migraphx

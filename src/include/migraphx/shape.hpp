@@ -332,6 +332,11 @@ struct shape
 void migraphx_to_value(value& v, const shape& s);
 void migraphx_from_value(const value& v, shape& s);
 
+/*!
+ * Make a dynamic shape from a fixed shape.
+ */
+shape fixed_to_dynamic(const shape& s);
+
 } // namespace MIGRAPHX_INLINE_NS
 } // namespace migraphx
 
