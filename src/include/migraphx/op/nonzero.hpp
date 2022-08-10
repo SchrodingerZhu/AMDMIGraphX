@@ -39,6 +39,14 @@ namespace op {
 
 struct nonzero
 {
+    bool use_dynamic = false;
+
+    template <class Self, class F>
+    static auto reflect(Self& self, F f)
+    {
+        return pack(f(self.use_dynamic, "use_dynamic"));
+    }
+
     std::string name() const { return "nonzero"; }
 
     shape compute_shape(std::vector<shape> inputs) const
