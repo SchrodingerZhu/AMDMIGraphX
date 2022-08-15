@@ -24,11 +24,11 @@
 cmake_minimum_required(VERSION 3.5)
 project (dyn_model_test)
 
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 set (PROGRAM dyn_model_test)
 
 find_library(MIGX_LIB
-    NAMES libmigraphx
+    NAMES migraphx
     HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../docker_build/lib/"
 )
 if(NOT MIGX_LIB)
@@ -37,7 +37,7 @@ endif()
 message("migraphx library: " ${MIGX_LIB})
 
 find_library(MIGX_REF_LIB
-    NAMES libmigraphx_ref
+    NAMES migraphx_ref
     HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../docker_build/lib/"
 )
 if(NOT MIGX_REF_LIB)
@@ -46,7 +46,7 @@ endif()
 message("migraphx_ref library: " ${MIGX_REF_LIB})
 
 find_library(MIGX_ONNX_LIB
-    NAMES libmigraphx_onnx
+    NAMES migraphx_onnx
     HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../docker_build/lib/"
 )
 if(NOT MIGX_ONNX_LIB)
@@ -59,4 +59,3 @@ add_executable(${PROGRAM} ${PROGRAM}.cpp)
 
 target_link_libraries(${PROGRAM} ${MIGX_LIB} ${MIGX_REF_LIB} ${MIGX_ONNX_LIB})
 target_include_directories(${PROGRAM} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../src/include/")
-target_compile_features(${PROGRAM} PRIVATE cxx_std_17)
