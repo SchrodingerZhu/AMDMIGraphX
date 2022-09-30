@@ -32,9 +32,7 @@
 #include <migraphx/op/quant_convolution.hpp>
 #include <migraphx/op/dot.hpp>
 #include <migraphx/op/quant_dot.hpp>
-#include <migraphx/op/elu.hpp>
 #include <migraphx/op/im2col.hpp>
-#include <migraphx/op/leaky_relu.hpp>
 #include <migraphx/op/logsoftmax.hpp>
 #include <migraphx/op/loop.hpp>
 #include <migraphx/op/lrn.hpp>
@@ -237,15 +235,16 @@ struct ref_convolution : auto_register_op<ref_convolution<Op>>
     argument compute(context&, shape output_shape, std::vector<argument> args) const
     {
         std::vector<std::size_t> padding;
-        if(op.use_dynamic_same_auto_pad)
+        if(op.padding_mode != op::padding_mode_t::default_)
         {
-            auto input_lens = args[0].get_shape().lens();
-            std::vector<std::size_t> img_lens{input_lens.begin() + 2, input_lens.end()};
+            auto input_lens   = args[0].get_shape().lens();
             auto weights_lens = args[1].get_shape().lens();
-            std::vector<std::size_t> k_lens{weights_lens.begin() + 2, weights_lens.end()};
-            padding = calc_dyn_auto_pad(img_lens, k_lens, op.stride, op.dilation);
-            output_shape =
-                compute_padded_shape({args.at(0).get_shape(), args.at(1).get_shape()}, padding);
+            padding =
+                op.padding_mode == op::same_upper
+                    ? calc_dyn_auto_pad(input_lens, weights_lens, op.stride, op.dilation, true)
+                    : calc_dyn_auto_pad(input_lens, weights_lens, op.stride, op.dilation, false);
+            output_shape = compute_padded_shape(
+                args[0].get_shape(), args[1].get_shape(), padding, op.stride, op.dilation);
         }
         else
         {
@@ -312,34 +311,6 @@ struct ref_convolution : auto_register_op<ref_convolution<Op>>
             });
         });
         return result;
-    }
-
-    private:
-    /*!
-     * Used for dynamic auto padding since padding needs to be computed at evaulation time.
-     * \param inputs two fixed shape inputs [input_tensor, weights]
-     * \param padding from auto_pad calculation
-     */
-    shape compute_padded_shape(const std::vector<shape>& inputs,
-                               const std::vector<std::size_t>& padding) const
-    {
-        const shape& input            = inputs.at(0);
-        const shape& weights          = inputs.at(1);
-        const size_t num_spatial_dims = input.lens().size() - 2;
-
-        std::vector<size_t> output_lens{input.lens()[0], weights.lens()[0]};
-        // calculate the output shape of the convolution: ((W - K + 2P) / S) + 1
-        for(size_t i = 0; i < num_spatial_dims; i++)
-        {
-            auto padding_factor = padding[i] + padding[i + num_spatial_dims];
-            output_lens.push_back(std::size_t(std::max<std::ptrdiff_t>(
-                1,
-                (input.lens()[i + 2] - (1 + op.dilation[i] * (weights.lens()[i + 2] - 1)) +
-                 padding_factor) /
-                        op.stride[i] +
-                    1)));
-        }
-        return inputs[0].with_lens(output_lens);
     }
 };
 
@@ -537,65 +508,6 @@ struct ref_quant_gemm
 };
 MIGRAPHX_REGISTER_OP(ref_gemm)
 
-struct leaky_relu_op
-{
-    op::leaky_relu op;
-    std::string name() const { return "ref::leaky_relu"; }
-    auto fcn() const
-    {
-        auto a = op.alpha;
-        return [a](auto x) { return x > 0 ? x : x * a; };
-    }
-};
-
-struct elu_op
-{
-    op::elu op;
-    std::string name() const { return "ref::elu"; }
-    auto fcn() const
-    {
-        auto a = op.alpha;
-        return [a](auto x) { return x > 0 ? x : a * std::expm1(x); };
-    }
-};
-
-template <typename Op>
-struct ref_unary : auto_register_op<ref_unary<Op>>
-{
-    ref_unary() = default;
-
-    template <class T>
-    ref_unary(T pop) : op(Op{std::move(pop)})
-    {
-    }
-
-    Op op;
-
-    template <class Self, class F>
-    static auto reflect(Self& self, F f)
-    {
-        return migraphx::reflect(self.op.op, f);
-    }
-    std::string name() const { return op.name(); }
-    shape compute_shape(const std::vector<shape>& inputs) const
-    {
-        check_shapes{inputs, *this}.has(1);
-        const auto& s = inputs.at(0);
-        return {s.type(), s.lens()};
-    }
-
-    argument compute(context&, const shape& output_shape, std::vector<argument> args) const
-    {
-        argument result{output_shape};
-        visit_all(result, args[0])([&](auto output, auto input) {
-            assert(input.get_shape().standard());
-            std::transform(input.begin(), input.end(), output.begin(), op.fcn());
-        });
-
-        return result;
-    }
-};
-
 template <class Op>
 struct ref_softmax : auto_register_op<ref_softmax<Op>>
 {
@@ -738,9 +650,7 @@ struct ref_apply
         apply_map["quant_dot"]   = extend_op<ref_quant_gemm, op::quant_dot>();
         apply_map["quant_convolution"] =
             extend_op<ref_convolution<op::quant_convolution>, op::quant_convolution>();
-        apply_map["elu"]        = extend_op<ref_unary<elu_op>, op::elu>();
         apply_map["im2col"]     = extend_op<ref_im2col, op::im2col>();
-        apply_map["leaky_relu"] = extend_op<ref_unary<leaky_relu_op>, op::leaky_relu>();
         apply_map["logsoftmax"] = extend_op<ref_softmax<op::logsoftmax>, op::logsoftmax>();
         apply_map["lrn"]        = extend_op<ref_lrn, op::lrn>();
         apply_map["pad"]        = extend_op<ref_pad, op::pad>();
