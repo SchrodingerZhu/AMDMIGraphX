@@ -51,6 +51,13 @@ rocblas_handle create_rocblas_handle_ptr(migraphx::context& ctx)
 struct sscal_custom_op final : migraphx::experimental_custom_op_base
 {
     virtual std::string name() const override { return "sscal_custom_op"; }
+
+    // flag to identify whether custom op runs on the GPU or on the host.
+    // Based on this flag MIGraphX would inject necessary copies to and from GPU for the input and
+    // output buffers as necessary. Therefore if custom_op runs on GPU then it can assume its input
+    // buffers are in GPU memory, and similarly for the host
+    virtual bool runs_on_offload_target() const override { return true; }
+
     virtual migraphx::argument compute(migraphx::context ctx,
                                        migraphx::shape output_shape,
                                        migraphx::arguments args) const override
@@ -72,7 +79,7 @@ struct sscal_custom_op final : migraphx::experimental_custom_op_base
         {
             throw std::runtime_error("sscal_custom_op must have 2 input arguments");
         }
-        if(inputs[0].lengths().size() != 1 || inputs[0].lengths()[0] != 1)
+        if(inputs[0].lengths().size() != 1 or inputs[0].lengths()[0] != 1)
         {
             throw std::runtime_error("first input argument to sscal_custom_op must be a scalar");
         }
@@ -107,7 +114,7 @@ int main(int argc, const char* argv[])
     options.set_offload_copy();
     p.compile(migraphx::target("gpu"), options);
     migraphx::program_parameters pp;
-    std::vector<float> x_data(x_shape.bytes() / sizeof(x_shape.type()));
+    std::vector<float> x_data(x_shape.elements());
     std::vector<float> scale_data{-1};
     std::iota(x_data.begin(), x_data.end(), 0);
     pp.add("x", migraphx::argument(x_shape, x_data.data()));

@@ -80,7 +80,6 @@ struct parse_depthwiseconv : op_parser<parse_depthwiseconv>
 
             if(pad_mode.find("SAME") != std::string::npos)
             {
-                op.padding_mode                 = op::padding_mode_t::same;
                 std::vector<size_t> weight_dims = weights->get_shape().lens();
                 size_t weight_h                 = weight_dims[2];
                 size_t weight_w                 = weight_dims[3];
@@ -90,7 +89,7 @@ struct parse_depthwiseconv : op_parser<parse_depthwiseconv>
                 calculate_padding(0, pads, input_dims[2], op.stride[0], op.dilation[0], weight_h);
                 calculate_padding(1, pads, input_dims[3], op.stride[1], op.dilation[1], weight_w);
 
-                if(pads[0] != pads[2] || pads[1] != pads[3])
+                if(pads[0] != pads[2] or pads[1] != pads[3])
                 {
                     std::vector<int64_t> padding = {0, 0, pads[0], pads[1], 0, 0, pads[2], pads[3]};
                     l0 = info.add_instruction(migraphx::make_op("pad", {{"pads", padding}}), l0);
@@ -100,10 +99,6 @@ struct parse_depthwiseconv : op_parser<parse_depthwiseconv>
                     op.padding[0] = pads[0];
                     op.padding[1] = pads[1];
                 }
-            }
-            else if(pad_mode.find("VALID") != std::string::npos)
-            {
-                op.padding_mode = op::padding_mode_t::valid;
             }
         }
 

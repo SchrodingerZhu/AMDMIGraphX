@@ -75,7 +75,6 @@ struct parse_conv : op_parser<parse_conv>
             const std::string& pad_mode = info.attributes.at("padding").s();
             if(pad_mode.find("SAME") != std::string::npos)
             {
-                op.padding_mode                 = op::padding_mode_t::same;
                 std::vector<size_t> weight_dims = weights->get_shape().lens();
                 size_t weight_h                 = weight_dims[2];
                 size_t weight_w                 = weight_dims[3];
@@ -87,10 +86,6 @@ struct parse_conv : op_parser<parse_conv>
 
                 op.padding = std::vector<size_t>(pads.begin(), pads.end());
             }
-            else if(pad_mode.find("VALID") != std::string::npos)
-            {
-                op.padding_mode = op::padding_mode_t::valid;
-            }
             else if(pad_mode.find("EXPLICIT") != std::string::npos)
             {
                 std::vector<size_t> padding;
@@ -100,7 +95,7 @@ struct parse_conv : op_parser<parse_conv>
                 {
                     MIGRAPHX_THROW("padding should have 4 values");
                 }
-                if(padding[0] != padding[2] || padding[1] != padding[3])
+                if(padding[0] != padding[2] or padding[1] != padding[3])
                 {
                     MIGRAPHX_THROW("migraphx does not support asymetric padding");
                 }

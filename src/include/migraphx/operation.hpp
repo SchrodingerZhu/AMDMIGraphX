@@ -32,6 +32,8 @@
 #include <utility>
 #include <unordered_map>
 #include <migraphx/reflect.hpp>
+#include <migraphx/dyn_output.hpp>
+#include <migraphx/functional.hpp>
 #include <migraphx/streamutils.hpp>
 #include <migraphx/normalize_attributes.hpp>
 #include <migraphx/argument.hpp>
@@ -199,9 +201,12 @@ auto compute_op(rank<1>,
                 context& ctx,
                 const shape& output_shape,
                 const std::vector<argument>& input)
-    -> decltype(x.compute(auto_any_cast(ctx), output_shape, input))
+    -> decltype(x.compute(auto_any_cast(ctx),
+                          make_compute_output_shape(pack(x, output_shape, input)),
+                          input))
 {
-    return x.compute(auto_any_cast(ctx), output_shape, input);
+    return x.compute(
+        auto_any_cast(ctx), make_compute_output_shape(pack(x, output_shape, input)), input);
 }
 
 template <class T>
@@ -220,9 +225,9 @@ compute_op(const T& x, context& ctx, const shape& output_shape, const std::vecto
 
 template <class T>
 auto compute_op(rank<1>, const T& x, const shape& output_shape, const std::vector<argument>& input)
-    -> decltype(x.compute(output_shape, input))
+    -> decltype(x.compute(make_compute_output_shape(pack(x, output_shape, input)), input))
 {
-    return x.compute(output_shape, input);
+    return x.compute(make_compute_output_shape(pack(x, output_shape, input)), input);
 }
 
 template <class T>
@@ -244,9 +249,11 @@ auto compute_op(rank<1>,
                 const shape& output,
                 const std::vector<argument>& inputs,
                 const std::vector<module_ref>& module_args,
-                F f) -> decltype(x.compute(output, inputs, module_args, f))
+                F f)
+    -> decltype(
+        x.compute(make_compute_output_shape(pack(x, output, inputs)), inputs, module_args, f))
 {
-    return x.compute(output, inputs, module_args, f);
+    return x.compute(make_compute_output_shape(pack(x, output, inputs)), inputs, module_args, f);
 }
 
 template <class T, class F>
@@ -278,9 +285,17 @@ auto compute_op(rank<4>,
                 const shape& output,
                 const std::vector<argument>& inputs,
                 const std::vector<module_ref>& module_args,
-                F f) -> decltype(x.compute(auto_any_cast(ctx), output, inputs, module_args, f))
+                F f) -> decltype(x.compute(auto_any_cast(ctx),
+                                           make_compute_output_shape(pack(x, output, inputs)),
+                                           inputs,
+                                           module_args,
+                                           f))
 {
-    return x.compute(auto_any_cast(ctx), output, inputs, module_args, f);
+    return x.compute(auto_any_cast(ctx),
+                     make_compute_output_shape(pack(x, output, inputs)),
+                     inputs,
+                     module_args,
+                     f);
 }
 
 template <class T, class F>
@@ -290,9 +305,11 @@ auto compute_op(rank<3>,
                 const shape& output,
                 const std::vector<argument>& inputs,
                 const std::vector<module_ref>& module_args,
-                F f) -> decltype(x.compute(output, inputs, module_args, f))
+                F f)
+    -> decltype(
+        x.compute(make_compute_output_shape(pack(x, output, inputs)), inputs, module_args, f))
 {
-    return x.compute(output, inputs, module_args, f);
+    return x.compute(make_compute_output_shape(pack(x, output, inputs)), inputs, module_args, f);
 }
 
 template <class T, class F>
@@ -302,9 +319,10 @@ auto compute_op(rank<2>,
                 const shape& output,
                 const std::vector<argument>& inputs,
                 const std::vector<module_ref>&,
-                F) -> decltype(x.compute(output, inputs))
+                F)
+    -> decltype(x.compute(make_compute_output_shape(pack(x, output, inputs)), inputs))
 {
-    return x.compute(output, inputs);
+    return x.compute(make_compute_output_shape(pack(x, output, inputs)), inputs);
 }
 
 template <class T, class F>
@@ -314,9 +332,12 @@ auto compute_op(rank<1>,
                 const shape& output,
                 const std::vector<argument>& inputs,
                 const std::vector<module_ref>&,
-                F) -> decltype(x.compute(auto_any_cast(ctx), output, inputs))
+                F) -> decltype(x.compute(auto_any_cast(ctx),
+                                         make_compute_output_shape(pack(x, output, inputs)),
+                                         inputs))
 {
-    return x.compute(auto_any_cast(ctx), output, inputs);
+    return x.compute(
+        auto_any_cast(ctx), make_compute_output_shape(pack(x, output, inputs)), inputs);
 }
 
 template <class T, class F>
@@ -348,7 +369,8 @@ auto is_context_free_op(rank<1>,
                         const T& x,
                         const shape& output_shape,
                         const std::vector<argument>& input)
-    -> decltype(x.compute(output_shape, input), std::true_type{});
+    -> decltype(x.compute(make_compute_output_shape(pack(x, output_shape, input)), input),
+                std::true_type{});
 
 template <class T>
 auto is_context_free_op(rank<0>, const T&, const shape&, const std::vector<argument>&)
@@ -1066,7 +1088,7 @@ struct operation
         template <typename PrivateDetailTypeErasedU = PrivateDetailTypeErasedT>
         private_detail_te_handle_type(
             PrivateDetailTypeErasedT value,
-            typename std::enable_if<!std::is_reference<PrivateDetailTypeErasedU>::value,
+            typename std::enable_if<not std::is_reference<PrivateDetailTypeErasedU>::value,
                                     int>::type* = nullptr) noexcept
             : private_detail_te_value(std::move(value))
         {
@@ -1237,7 +1259,7 @@ struct operation
     private_detail_te_handle_base_type& private_detail_te_get_handle()
     {
         assert(private_detail_te_handle_mem_var != nullptr);
-        if(!private_detail_te_handle_mem_var.unique())
+        if(not private_detail_te_handle_mem_var.unique())
             private_detail_te_handle_mem_var = private_detail_te_handle_mem_var->clone();
         return *private_detail_te_handle_mem_var;
     }
@@ -1276,7 +1298,7 @@ inline const ValueType& any_cast(const operation& x)
 }
 #endif
 
-inline bool operator!=(const operation& x, const operation& y) { return !(x == y); }
+inline bool operator!=(const operation& x, const operation& y) { return not(x == y); }
 
 inline value
 compile(operation& op, context& ctx, const shape& output_shape, const std::vector<shape>& input)

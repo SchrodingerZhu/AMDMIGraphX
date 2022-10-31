@@ -44,8 +44,16 @@ struct convert : unary<convert>
 
     shape compute_shape(std::vector<shape> inputs) const
     {
-        check_shapes{inputs, *this}.has(1);
-        return {target_type, inputs.at(0).lens(), inputs.at(0).strides()};
+        check_shapes{inputs, *this, true}.has(1);
+        auto input = inputs.at(0);
+        if(input.dynamic())
+        {
+            return {target_type, input.dyn_dims()};
+        }
+        else
+        {
+            return {target_type, input.lens(), input.strides()};
+        }
     }
 
     std::string point_op() const
