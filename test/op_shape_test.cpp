@@ -81,6 +81,14 @@ void throws_shape(const migraphx::shape&, Ts...)
                   "An expected shape should not be passed to throws_shape function");
 }
 
+TEST_CASE(binary_dyn_static_error)
+{
+    migraphx::shape a_shape{migraphx::shape::float_type, {1, 4, 4}};
+    std::vector<migraphx::shape::dynamic_dimension> b{{1, 1, 0}, {4, 4, 4}, {4, 4, 0}};
+    migraphx::shape b_shape{migraphx::shape::float_type, b};
+    throws_shape(migraphx::make_op("add"), a_shape, b_shape);
+}
+
 TEST_CASE(broadcast)
 {
     {
@@ -355,6 +363,12 @@ TEST_CASE(contiguous_shape)
 
     migraphx::shape single{migraphx::shape::float_type, {2}};
     expect_shape(single, migraphx::make_op("contiguous"), single);
+}
+
+TEST_CASE(contiguous_dyn_shape)
+{
+    migraphx::shape s0{migraphx::shape::float_type, {{1, 4, 0}, {2, 2, 2}}};
+    expect_shape(s0, migraphx::make_op("contiguous"), s0);
 }
 
 TEST_CASE(contiguous_shape_scalar)
@@ -1207,6 +1221,21 @@ TEST_CASE(multibroadcast_2in_static_dyn1)
                  a_shape);
 }
 
+TEST_CASE(multibroadcast_2in_static_dyn2)
+{
+    migraphx::shape a_shape{migraphx::shape::float_type, {1, 6}};
+    std::vector<migraphx::shape::dynamic_dimension> b{{8, 8, 0}, {6, 6, 0}};
+    migraphx::shape b_shape{migraphx::shape::float_type, b};
+    expect_shape(migraphx::shape{migraphx::shape::float_type, {{8, 8, 0}, {6, 6, 0}}},
+                 migraphx::make_op("multibroadcast", {{"out_dyn_dims", migraphx::to_value(b)}}),
+                 a_shape,
+                 b_shape);
+    expect_shape(migraphx::shape{migraphx::shape::float_type, {{8, 8, 0}, {6, 6, 0}}},
+                 migraphx::make_op("multibroadcast", {{"out_dyn_dims", migraphx::to_value(b)}}),
+                 b_shape,
+                 a_shape);
+}
+
 TEST_CASE(multibroadcast_2in_static_dyn_error0)
 {
     // doesn't match on first dimension
@@ -1249,6 +1278,22 @@ TEST_CASE(multibroadcast_2in_dyn_dyn0)
                  b_shape);
     expect_shape(migraphx::shape{migraphx::shape::float_type, {{1, 4, 0}, {2, 4, 2}, {2, 4, 0}}},
                  migraphx::make_op("multibroadcast"),
+                 b_shape,
+                 a_shape);
+}
+
+TEST_CASE(multibroadcast_2in_dyn_dyn1)
+{
+    std::vector<migraphx::shape::dynamic_dimension> a{{1, 4, 0}, {2, 4, 2}, {2, 4, 0}};
+    migraphx::shape a_shape{migraphx::shape::float_type, a};
+    std::vector<migraphx::shape::dynamic_dimension> b{{2, 4, 2}, {2, 4, 0}};
+    migraphx::shape b_shape{migraphx::shape::float_type, b};
+    expect_shape(migraphx::shape{migraphx::shape::float_type, {{1, 4, 0}, {2, 4, 2}, {2, 4, 0}}},
+                 migraphx::make_op("multibroadcast", {{"out_dyn_dims", migraphx::to_value(a)}}),
+                 a_shape,
+                 b_shape);
+    expect_shape(migraphx::shape{migraphx::shape::float_type, {{1, 4, 0}, {2, 4, 2}, {2, 4, 0}}},
+                 migraphx::make_op("multibroadcast", {{"out_dyn_dims", migraphx::to_value(a)}}),
                  b_shape,
                  a_shape);
 }
@@ -2241,6 +2286,28 @@ TEST_CASE(transpose_shape)
     expect_shape(input, migraphx::make_op("transpose", {{"permutation", {0, 1}}}), input);
     expect_shape(output, migraphx::make_op("transpose", {{"permutation", {1, 0}}}), input);
     throws_shape(migraphx::make_op("transpose", {{"permutation", {1, 2}}}), input);
+}
+
+TEST_CASE(transpose_dyn_shape0)
+{
+    migraphx::shape input{migraphx::shape::float_type, {{1, 4, 0}, {2, 2, 0}}};
+    migraphx::shape output{migraphx::shape::float_type, {{2, 2, 0}, {1, 4, 0}}};
+    expect_shape(input, migraphx::make_op("transpose", {{"permutation", {0, 1}}}), input);
+    expect_shape(output, migraphx::make_op("transpose", {{"permutation", {1, 0}}}), input);
+}
+
+TEST_CASE(transpose_dyn_shape1)
+{
+    migraphx::shape input{migraphx::shape::float_type, {{1, 4, 0}, {4, 4, 0}, {4, 4, 0}}};
+    migraphx::shape output{migraphx::shape::float_type, {{4, 4, 0}, {4, 4, 0}, {1, 4, 0}}};
+    expect_shape(input, migraphx::make_op("transpose", {{"permutation", {0, 1, 2}}}), input);
+    expect_shape(output, migraphx::make_op("transpose", {{"permutation", {2, 1, 0}}}), input);
+}
+
+TEST_CASE(transpose_axes_error)
+{
+    migraphx::shape input{migraphx::shape::float_type, {2, 2}};
+    throws_shape(migraphx::make_op("transpose", {{"permutation", {1}}}), input);
 }
 
 TEST_CASE(step_test)
