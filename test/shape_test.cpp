@@ -38,6 +38,27 @@ TEST_CASE(test_shape_default)
     EXPECT(s.elements() == 0);
     EXPECT(s.bytes() == 0);
 }
+
+TEST_CASE(test_dyn_4arg_constructor)
+{
+    migraphx::shape s{migraphx::shape::float_type,
+                      {
+                          1,
+                          4,
+                          4,
+                      },
+                      {
+                          4,
+                          4,
+                          4,
+                      },
+                      {0, 0, 0}};
+    std::vector<migraphx::shape::dynamic_dimension> expected_dyn_dims = {
+        {1, 4, 0}, {4, 4, 0}, {4, 4, 0}};
+    EXPECT(s.dynamic());
+    EXPECT(s.dyn_dims() == expected_dyn_dims);
+}
+
 TEST_CASE(test_shape_assign)
 {
     migraphx::shape s1{migraphx::shape::float_type, {100, 32, 8, 8}};
@@ -139,6 +160,20 @@ TEST_CASE(test_shape_dynamic_compares)
     EXPECT(ss0.str() != ss3.str());
 }
 
+TEST_CASE(dynamic_dimension_size_t_compares)
+{
+    using migraphx::shape;
+    auto a = shape::dynamic_dimension{2, 2, 2};
+    EXPECT(a == 2);
+    EXPECT(a != 3);
+    EXPECT(static_cast<std::size_t>(2) == a);
+    EXPECT(static_cast<std::size_t>(3) != a);
+
+    auto b = shape::dynamic_dimension{2, 4, 0};
+    EXPECT(b != 2);
+    EXPECT(static_cast<std::size_t>(2) != b);
+}
+
 TEST_CASE(test_shape_dynamic_errors)
 {
     using migraphx::shape;
@@ -194,7 +229,7 @@ TEST_CASE(test_shape_ndim_static)
     EXPECT(s1.ndim() == 4);
 
     migraphx::shape s2{migraphx::shape::float_type, {2, 4, 4, 1, 3}};
-    EXPECT(s1.ndim() == 5);
+    EXPECT(s2.ndim() == 5);
 }
 
 TEST_CASE(test_shape_ndim_dyn)
@@ -207,7 +242,7 @@ TEST_CASE(test_shape_ndim_dyn)
 
     migraphx::shape s2{migraphx::shape::float_type,
                        {{1, 1, 0}, {2, 4, 0}, {2, 4, 0}, {1, 1, 1}, {3, 3, 0}}};
-    EXPECT(s1.ndim() == 5);
+    EXPECT(s2.ndim() == 5);
 }
 
 TEST_CASE(test_shape_non_packed_single_dim)
