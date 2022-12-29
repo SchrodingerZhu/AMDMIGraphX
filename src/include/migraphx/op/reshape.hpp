@@ -28,6 +28,7 @@
 #include <migraphx/argument.hpp>
 #include <migraphx/config.hpp>
 #include <migraphx/value.hpp>
+#include <migraphx/dyn_output.hpp>
 
 namespace migraphx {
 inline namespace MIGRAPHX_INLINE_NS {
@@ -46,14 +47,66 @@ struct reshape
     value attributes() const { return {{"require_std_shape", true}}; }
 
     std::string name() const { return "reshape"; }
-    shape compute_shape(std::vector<shape> inputs) const
+
+    shape dyn_compute_shape(shape s0) const
     {
-        check_shapes{inputs, *this}.has(1).standard();
+        auto dyn_dims       = s0.dyn_dims();
+        int not_fixed_index = -1;
+        // track number of fixed elements in input and output
+        std::size_t num_dims_ele = 1;
+        std::size_t num_dd_ele   = 1;
+        for(std::size_t i = 0; i < dyn_dims.size(); ++i)
+        {
+            if(dyn_dims[i].is_fixed())
+            {
+                num_dims_ele *= dims[i];
+                num_dd_ele *= dyn_dims[i].min;
+            }
+            else
+            {
+                if(not_fixed_index == -1)
+                {
+                    not_fixed_index = i;
+                }
+                else
+                {
+                    MIGRAPHX_THROW("Reshape: Only support one non-fixed dynamic_dimension");
+                }
+            }
+        }
+        if(num_dims_ele != num_dd_ele)
+        {
+            MIGRAPHX_THROW("Reshape: Number of fixed elements must match. Input: " +
+                           std::to_string(num_dd_ele) + " Output: " + std::to_string(num_dims_ele));
+        }
+        if(dims[not_fixed_index] != 0 and dims[not_fixed_index] != -1)
+        {
+            MIGRAPHX_THROW("Reshape: Non-fixed dynamic_dimension doesn't match with 0 or -1 "
+                           "output dimension");
+        }
+        // construct output dynamic shape from dims attribute
+        std::vector<shape::dynamic_dimension> output_dyn_dims = {};
+        for(std::size_t i = 0; i < dims.size(); ++i)
+        {
+            if(i == not_fixed_index)
+            {
+                output_dyn_dims.push_back(dyn_dims[not_fixed_index]);
+            }
+            else
+            {
+                std::size_t d = dims[i];
+                output_dyn_dims.push_back({d, d, 0});
+            }
+        }
+        return {s0.type(), output_dyn_dims};
+    }
+
+    template <class T>
+    shape static_compute_shape(std::vector<shape> inputs, T n_neg_dims) const
+    {
+        check_shapes{inputs, *this}.standard();
         auto&& idims = inputs.front().lens();
         std::vector<std::size_t> rdims(dims.begin(), dims.end());
-        auto n_neg_dims = std::count(dims.begin(), dims.end(), -1);
-        if(n_neg_dims > 1)
-            MIGRAPHX_THROW("Reshape: Dimensions for reshape can only have one -1 dim");
 
         for(std::size_t i = 0; i < dims.size(); i++)
         {
@@ -86,9 +139,26 @@ struct reshape
         return s;
     }
 
-    argument compute(shape output_shape, std::vector<argument> args) const
+    shape compute_shape(std::vector<shape> inputs) const
     {
-        return args[0].reshape(output_shape);
+        check_shapes{inputs, *this, true}.has(1);
+        auto n_neg_dims = std::count(dims.begin(), dims.end(), -1);
+        if(n_neg_dims > 1)
+            MIGRAPHX_THROW("Reshape: Dimensions for reshape can only have one -1 dim");
+        auto s0 = inputs[0];
+        if(s0.dynamic())
+        {
+            return dyn_compute_shape(s0);
+        }
+        else
+        {
+            return static_compute_shape(inputs, n_neg_dims);
+        }
+    }
+
+    argument compute(const dyn_output& dyn_out, std::vector<argument> args) const
+    {
+        return args[0].reshape(dyn_out.computed_shape);
     }
 
     std::ptrdiff_t output_alias(const std::vector<shape>&) const { return 0; }
