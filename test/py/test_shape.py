@@ -49,6 +49,15 @@ def test_create_shape_type():
     assert s.type_size() == 4
 
 
+def test_create_dynamic_dimension():
+    dd = migraphx.shape.dynamic_dimension(1, 4)
+    assert dd.min == 1
+    assert dd.max == 4
+    assert dd.opt == 0
+    assert dd.is_fixed == False
+    assert dd.has_opt == False
+
+
 if __name__ == "__main__":
     test_create_shape()
     test_create_shape_broadcast()
