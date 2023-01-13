@@ -269,6 +269,8 @@ MIGRAPHX_PYBIND11_MODULE(migraphx, m)
         .def("__repr__", [](const migraphx::shape& s) { return migraphx::to_string(s); });
 
     py::class_<migraphx::shape::dynamic_dimension>(py_shape, "dynamic_dimension")
+        .def(py::init<>())
+        .def(py::init<std::size_t, std::size_t>())
         .def(py::init<std::size_t, std::size_t, std::size_t>())
         .def_readwrite("min", &migraphx::shape::dynamic_dimension::min)
         .def_readwrite("max", &migraphx::shape::dynamic_dimension::max)
