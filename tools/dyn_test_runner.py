@@ -62,7 +62,7 @@ def parse_dyn_dim_str(dim_str):
     # expecting string like: "{1, 4, 2}" or "{2, 4}"
     if dim_str is None:
         return migraphx.shape.dynamic_dimension(1, 1, 0)
-    dim_str = dim_str.strip('{}')
+    dim_str = dim_str.strip('{}()')
     dims = [int(x) for x in dim_str.split(', ')]
     if len(dims) == 3:
         return migraphx.shape.dynamic_dimension(dims[0], dims[1], dims[2])
@@ -71,15 +71,14 @@ def parse_dyn_dim_str(dim_str):
 
 def parse_dyn_dims_str(dds_str):
     # expecting string like "{{1, 4, 2}, {4, 4}, {4, 4}}"
-    dds_str = dds_str.strip('{}')
-    dyn_dims = dds_str.split(', ')
+    dyn_dims = dds_str[1, -2].split(', ')
     return [parse_dyn_dim_str(dd) for dd in dyn_dims]
 
 
 def parse_map_dyn_input_str(dict_str):
     # return {input_name: list<dynamic_dimension>}
     # expecting string like: {"A": {{1, 4, 2}, {4, 4}, {4, 4}}, "B": {{2, 4}, {2, 4}}}
-    dict_str = dict_str.strip('{}')
+    dict_str = dict_str[1, -2]
     pairs = dict_str.split(', ')
     dd_dict = {}
     for p in pairs:
