@@ -70,22 +70,41 @@ def parse_dyn_dim_str(dim_str):
 
 
 def parse_dyn_dims_str(dds_str):
-    # expecting string like "{{1, 4, 2}, {4, 4}, {4, 4}}"
-    dyn_dims = dds_str[1, -2].split(', ')
+    # expecting string like "[{1, 4, 2}, {4, 4}, {4, 4}]"
+    dyn_dims = []
+    start_ind = 0
+    dds_str = dds_str.strip('[]')
+    for i, v in enumerate(dds_str):
+        if v == '{':
+            start_ind = i
+        elif v == '}':
+            dyn_dims.append(dds_str[start_ind:i + 1])
     return [parse_dyn_dim_str(dd) for dd in dyn_dims]
 
 
 def parse_map_dyn_input_str(dict_str):
     # return {input_name: list<dynamic_dimension>}
-    # expecting string like: {"A": {{1, 4, 2}, {4, 4}, {4, 4}}, "B": {{2, 4}, {2, 4}}}
-    dict_str = dict_str[1, -2]
-    pairs = dict_str.split(', ')
+    # expecting string like: `{"A": [{1, 4, 2}, {4, 4}, {4, 4}], "B": [{2, 4}, {2, 4}]}`
+    start_ind = 0
+    in_quotes = False
+    keys = []
+    dyn_dim_strs = []
+    for i, v in enumerate(dict_str):
+        if v == '"':
+            if not in_quotes:
+                start_ind = i
+                in_quotes = True
+            else:
+                keys.append(dict_str[start_ind:i + 1])
+                in_quotes = False
+        elif v == '[' and not in_quotes:
+            start_ind = i
+        elif v == ']' and not in_quotes:
+            dyn_dim_strs.append(dict_str[start_ind:i + 1])
     dd_dict = {}
-    for p in pairs:
-        key, dyn_dims_str = p.split(': ')
-        dds = parse_dyn_dims_str(dyn_dims_str)
-        # key[1:-2] to remove quotation marks
-        dd_dict[key[1:-2]] = dds
+    for key, dds in zip(keys, dyn_dim_strs):
+        x = parse_dyn_dims_str(dds)
+        dd_dict[key.strip('"')] = x
     return dd_dict
 
 
