@@ -47,6 +47,13 @@ void gemm(context& ctx,
           bool int8_x4_format,
           bool compute_fp32);
 
+template <class T>
+auto create_gemm_args(context& ctx, 
+                      const std::vector<argument>& inputs);
+// The version with just shapes will use null pointers for the buffers
+template <class T>
+auto create_gemm_args(context& ctx, const std::vector<shape>& inputs);
+
 } // namespace gpu
 } // namespace MIGRAPHX_INLINE_NS
 } // namespace migraphx

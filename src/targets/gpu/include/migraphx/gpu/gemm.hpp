@@ -43,6 +43,9 @@ struct context;
 
 void blas_shape(const shape& s);
 shape transpose_batch(const shape& s, unsigned trans_batch);
+std::pair<double, double>
+time_op(context& ictx, operation op, const std::vector<shape>& inputs, int n = 100);
+argument generate_argument(shape s, unsigned long seed = 0);
 
 template <class Op>
 struct rocblas_gemm
