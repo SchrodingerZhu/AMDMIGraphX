@@ -58,14 +58,14 @@ add_library(migraphx
     layout_nhwc.cpp
     load_save.cpp
     make_op.cpp
+    memory_coloring.cpp
     module.cpp
     msgpack.cpp
     normalize_attributes.cpp
     normalize_ops.cpp
     op_enums.cpp
     operation.cpp
-    opt/memory_coloring.cpp
-    opt/memory_coloring_impl.cpp
+    optimize_module.cpp
     pad_calc.cpp
     pass_manager.cpp
     permutation.cpp
@@ -91,6 +91,7 @@ add_library(migraphx
     shape.cpp
     simplify_algebra.cpp
     simplify_reshapes.cpp
+    split_single_dyn_dim.cpp
     tmp_dir.cpp
     value.cpp
     verify_args.cpp
@@ -199,6 +200,7 @@ register_migraphx_ops(
     scatternd_add
     scatternd_mul
     scatternd_none
+    select_module
     sigmoid
     sign
     sinh
