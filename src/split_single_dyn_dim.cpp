@@ -128,13 +128,18 @@ void split_single_dyn_dim::apply(module_pass_manager& mpm) const
                        param_names.cend(),
                        std::back_inserter(sm_inputs),
                        [&](auto pn) { return mm->get_parameter(pn); });
-        migraphx::shape out_attr = migraphx::shape{mm->get_output_shapes()};
-        auto sm_ins              = mm->add_instruction(
+        auto output_shapes = mm->get_output_shapes();
+        migraphx::shape out_attr = migraphx::shape{output_shapes};
+        auto ret              = mm->add_instruction(
             migraphx::make_op("select_module",
                               {{"output_dyn_shapes", migraphx::to_value(out_attr)}}),
             sm_inputs,
             submodules);
-        mm->replace_return({sm_ins});
+        if (output_shapes.size() == 1)
+        {
+            ret = mm->add_instruction(migraphx::make_op("get_tuple_elem", {{"index", 0}}), ret);
+        }
+        mm->replace_return({ret});
     }
 }
 

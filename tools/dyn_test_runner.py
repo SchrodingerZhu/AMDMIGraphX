@@ -247,16 +247,15 @@ def run_one_case(model, param_map):
     # convert np array to model argument
     pp = {}
     for key, val in param_map.items():
-        pp[key] = migraphx.argument(val)
+        pp[key] = migraphx.to_gpu(migraphx.argument(val))
 
     # run the model
-    model_outputs = model.run(param_map)
+    model_outputs = model.run(pp)
 
-    # convert argument to np array
-    outputs = []
+    outputs = [];
     for output in model_outputs:
-        outputs.append(np.array(output))
-
+        host_output = migraphx.from_gpu(output)
+        outputs.append(np.array(host_output))
     return outputs
 
 
@@ -322,7 +321,7 @@ def main():
     else:
         model = migraphx.parse_onnx(model_path_name,
                                     default_dyn_dim_value=default_dd_val)
-    model.compile(migraphx.get_target(target))
+    model.compile(migraphx.get_target(target), offload_copy=False)
 
     # get test cases
     cases = get_test_cases(test_loc)
