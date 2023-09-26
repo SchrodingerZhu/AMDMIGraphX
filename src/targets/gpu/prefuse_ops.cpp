@@ -99,6 +99,19 @@ struct find_layernorm
         if(contains(r.instructions, "eps"))
             eps = r.instructions["eps"]->eval().at<float>();
 
+        // DEBUG
+        // if(ins->get_shape().type() == shape::half_type)
+        //{
+        //    auto bconvert = m.insert_instruction(ins, make_op("convert", {{"target_type",
+        //    shape::float_type}}), x_ins); auto ln_ins = m.insert_instruction(ins, layernorm{eps},
+        //    bconvert); m.replace_instruction(ins, make_op("convert", {{"target_type",
+        //    shape::half_type}}), ln_ins);
+        //}
+        // else
+        //{
+        //  m.replace_instruction(ins, layernorm{eps}, x_ins);
+        //}
+
         m.replace_instruction(ins, layernorm{eps}, x_ins);
     }
 };

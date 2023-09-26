@@ -555,7 +555,6 @@ literal onnx_parser::parse_tensor(const onnx::TensorProto& t) const
 shape onnx_parser::parse_type(const onnx::TypeProto& t) const
 {
     shape::type_t shape_type = get_type(t.tensor_type().elem_type());
-
     std::vector<shape::dynamic_dimension> dynamic_dims;
     auto&& tensor_dims = t.tensor_type().shape().dim();
     std::transform(tensor_dims.begin(),

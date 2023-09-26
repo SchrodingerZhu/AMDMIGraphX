@@ -37,6 +37,9 @@ inline namespace MIGRAPHX_INLINE_NS {
 
 std::vector<argument> run_ref(program p, const parameter_map& inputs)
 {
+    // DEBUG
+    quantize_fp16(p);
+
     p.compile(migraphx::make_target("ref"));
     auto out = p.eval(inputs);
     std::cout << p << std::endl;

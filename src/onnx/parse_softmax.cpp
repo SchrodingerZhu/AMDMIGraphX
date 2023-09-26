@@ -57,7 +57,14 @@ struct parse_softmax : op_parser<parse_softmax>
             axis = parser.parse_value(info.attributes.at("axis")).at<int>();
         }
 
+        // previous version
         return info.add_instruction(make_op(opd.op_name, {{"axis", axis}}), args);
+
+        // converted version
+        // auto convert0 = info.add_instruction(make_op("convert", {{"target_type",
+        // shape::float_type}}), args); auto softmax_ins = info.add_instruction(make_op(opd.op_name,
+        // {{"axis", axis}}), convert0); return info.add_instruction(make_op("convert",
+        // {{"target_type", shape::half_type}}), softmax_ins);
     }
 };
 

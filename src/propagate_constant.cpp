@@ -29,6 +29,7 @@
 #include <migraphx/par_for.hpp>
 #include <migraphx/env.hpp>
 #include <unordered_set>
+#include <migraphx/make_op.hpp>
 
 namespace migraphx {
 inline namespace MIGRAPHX_INLINE_NS {
@@ -79,9 +80,43 @@ void propagate_constant::apply(module& m) const
     // Compute literals in parallel
     std::vector<instruction_ref> const_instrs_vec{const_instrs.begin(), const_instrs.end()};
     std::vector<argument> literals(const_instrs_vec.size());
-    par_for(const_instrs_vec.size(), 1, [&](const auto i) {
-        literals[i] = const_instrs_vec[i]->eval();
-    });
+    for(int i = 0; i < const_instrs_vec.size(); ++i)
+    {
+        // DEBUG
+        auto ins = const_instrs_vec[i];
+        if(ins->get_shape().type() == shape::half_type)
+        {
+            auto inputs = ins->inputs();
+            std::vector<instruction_ref> new_inputs(inputs.size());
+            std::vector<instruction_ref> added_instructions;
+            std::transform(inputs.begin(), inputs.end(), new_inputs.begin(), [&](auto input) {
+                auto input_type = input->get_shape().type();
+                if(input_type != shape::half_type and input_type != shape::float_type)
+                    return input;
+                auto ai = m.add_instruction(
+                    make_op("convert", {{"target_type", shape::double_type}}), input);
+                added_instructions.push_back(ai);
+                return ai;
+            });
+            auto new_ins = m.add_instruction(ins->get_operator(), new_inputs);
+            added_instructions.push_back(new_ins);
+            auto after_convert = m.add_instruction(
+                make_op("convert", {{"target_type", ins->get_shape().type()}}), new_ins);
+            added_instructions.push_back(after_convert);
+            literals[i] = after_convert->eval();
+            for(auto a_ins : added_instructions)
+            {
+                m.remove_instruction(a_ins);
+            }
+        }
+        else
+        {
+            literals[i] = const_instrs_vec[i]->eval();
+        }
+
+        // Original
+        //    literals[i] = const_instrs_vec[i]->eval();
+    }
 
     // Replace instructions in m
     for(size_t i = 0; i < const_instrs_vec.size(); i++)
