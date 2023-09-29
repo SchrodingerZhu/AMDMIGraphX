@@ -51,6 +51,14 @@ void verify_reduced_program(const program& p,
                             const parameter_map& inputs = {},
                             verify::tolerance tols      = verify::tolerance{});
 
+void verify_reduced(program p,
+                    int n,
+                    const target& t,
+                    compile_options options,
+                    precision quantize,
+                    const parameter_map& inputs,
+                    verify::tolerance tols);
+
 } // namespace MIGRAPHX_INLINE_NS
 } // namespace driver
 } // namespace migraphx

@@ -108,6 +108,8 @@ def check_correctness(gold_outputs,
                 print('Expected value: \n{}'.format(gold_outputs[i]))
                 print('......')
                 print('Actual value: \n{}\n'.format(outputs[i]))
+                print('\n\n')
+                print(r'\nDifference: \n{}\n'.format(outputs[i] - gold_outputs[i]))
             else:
                 print('Outputs do not match')
                 break

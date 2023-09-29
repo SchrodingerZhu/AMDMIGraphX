@@ -62,11 +62,11 @@ static void quantize_module(module& m, const std::vector<std::string>& ins_names
             // return m.insert_instruction(
             //    ins, make_op("convert", {{"target_type", shape::half_type}}), input);
 
-            // DEBUG hack to fp32 atleast
-            if(input_type != shape::half_type)
+            // DEBUG hack to fp64
+            if(input_type != shape::half_type and input_type != shape::float_type)
                 return input;
             return m.insert_instruction(
-                ins, make_op("convert", {{"target_type", shape::float_type}}), input);
+                ins, make_op("convert", {{"target_type", shape::double_type}}), input);
 
         });
 

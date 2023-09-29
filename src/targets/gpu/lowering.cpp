@@ -86,6 +86,8 @@ struct miopen_apply
         auto& ctx      = get_context();
         int8_x4_format = get_int8_x4_format(ctx);
         compute_fp32   = get_compute_fp32_flag();
+        // DEBUG
+        // compute_fp32 = true;
         offload_copy   = (mod == mpm->get_root_module()) ? pass->offload_copy : false;
 
         add_generic_op("contiguous");

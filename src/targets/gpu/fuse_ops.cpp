@@ -847,7 +847,7 @@ void fuse_ops::apply(module& m) const
     match::find_matches(m, find_conv_pointwise{ctx}, find_conv_bias_relu{ctx}, find_conv_bias{ctx});
     run_passes(m, {dead_code_elimination{}});
     match::find_matches(m,
-                        find_layernorm_pointwise{},
+                        // find_layernorm_pointwise{},
                         find_concat_pointwise{},
                         find_gemm_pointwise{},
                         find_contiguous_tranpose_gemm{},

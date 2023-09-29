@@ -340,9 +340,10 @@ void fuse_reduce::apply(module_pass_manager& mpm) const
     mpm.run_pass(dead_code_elimination{});
     for(int i = 0; i < 4; i++)
     {
-        match::find_matches(
-            mpm, find_reduce_pointwise{}, find_pointwise_reduce{}, find_reduce_reduce{});
-        mpm.run_pass(dead_code_elimination{});
+        // DEBUG
+        // match::find_matches(
+        //     mpm, find_reduce_pointwise{}, find_pointwise_reduce{}, find_reduce_reduce{});
+        // mpm.run_pass(dead_code_elimination{});
     }
 }
 
