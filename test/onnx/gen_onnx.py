@@ -5496,6 +5496,24 @@ def prelu_brcst_test():
 
 
 @onnx_test()
+def qlinear_test():
+    x = helper.make_tensor_value_info('X', TensorProto.FLOAT, [6])
+
+    sc_y = helper.make_tensor('y_scale', TensorProto.FLOAT, [], [2])
+    zero_pt_y = helper.make_tensor('y_zero_point', TensorProto.UINT8, [],
+                                   [128])
+
+    y = helper.make_tensor_value_info('Y', TensorProto.UINT8, [6])
+
+    node = onnx.helper.make_node(
+        'QuantizeLinear',
+        inputs=['X'],
+        outputs=['Y'],
+    )
+    return ([node], [x], [y], [sc_y, zero_pt_y])
+
+
+@onnx_test()
 def qlinearadd_test():
     a = helper.make_tensor_value_info('A', TensorProto.UINT8, [64])
     sc_a = helper.make_tensor('A_scale', TensorProto.FLOAT, [], [0.05])

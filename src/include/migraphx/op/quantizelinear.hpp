@@ -63,8 +63,9 @@ struct quantizelinear
 
     argument compute(const shape& output_shape, std::vector<argument> args) const
     {
-        auto x       = args.at(0);
-        auto y_scale = args.at(1);
+        auto round_even = [](auto v) { return v - remainder(v, 1.0); };
+        auto x          = args.at(0);
+        auto y_scale    = args.at(1);
         std::vector<int8_t> zeros(output_shape.bytes(), 0);
         argument y_zero_point{output_shape, zeros.data()};
         if(args.size() == 3)
@@ -79,7 +80,7 @@ struct quantizelinear
                 auto min_value   = std::numeric_limits<quant_type>::min();
                 auto max_value   = std::numeric_limits<quant_type>::max();
                 par_for(output_shape.elements(), [&](auto i) {
-                    int64_t quantized = static_cast<int64_t>(std::round(input[i] / scales[i])) +
+                    int64_t quantized = static_cast<int64_t>(round_even(input[i] / scales[i])) +
                                         static_cast<int64_t>(zero_pts[i]);
                     output[i] = std::max(static_cast<int64_t>(min_value),
                                          std::min(static_cast<int64_t>(max_value), quantized));

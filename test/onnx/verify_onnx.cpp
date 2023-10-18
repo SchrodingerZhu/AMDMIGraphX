@@ -1344,6 +1344,27 @@ TEST_CASE(nonzero_test)
     EXPECT(migraphx::verify::verify_rms_range(result_vector, gold));
 }
 
+TEST_CASE(qlinear_test)
+{
+    // https://xadupre.github.io/draft/onnx/onnx_doc_folder/onnx__QuantizeLinear.html
+    migraphx::program p = migraphx::parse_onnx("qlinear_test.onnx");
+    p.compile(migraphx::make_target("ref"));
+
+    migraphx::shape x{migraphx::shape::float_type, {6}};
+    std::vector<float> data_x = {0, 2, 3, 1000, -254, -1000};
+
+    migraphx::parameter_map pp;
+    pp["X"]     = migraphx::argument(x, data_x.data());
+    auto result = p.eval(pp).back();
+
+    std::vector<uint8_t> result_vector;
+    result.visit([&](auto output) { result_vector.assign(output.begin(), output.end()); });
+
+    std::vector<uint8_t> gold = {128, 129, 130, 255, 1, 0};
+
+    EXPECT(migraphx::verify::verify_rms_range(result_vector, gold));
+}
+
 TEST_CASE(qlinearadd_test)
 {
     // github.com/microsoft/onnxruntime/blob/main/docs/ContribOperators.md#com.microsoft.QLinearAdd

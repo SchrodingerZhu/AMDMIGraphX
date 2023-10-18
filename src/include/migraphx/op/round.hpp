@@ -35,7 +35,7 @@ struct round : unary<round>
 {
     auto apply() const
     {
-        return [](auto x) { return std::round(x); };
+        return [](auto v) { return v - remainder(v, 1.0); };
     }
 };
 
