@@ -191,7 +191,7 @@ struct value_parser
 template <class T>
 struct value_parser<std::optional<T>>
 {
-    static T apply(const std::string& x) { return value_parser<T>::apply(x); }
+    static std::optional<T> apply(const std::string& x) { return value_parser<T>::apply(x); }
 };
 
 struct argument_parser
