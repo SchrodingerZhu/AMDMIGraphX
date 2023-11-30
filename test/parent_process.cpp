@@ -7,12 +7,26 @@
 #include <migraphx/process.hpp>
 #include <migraphx/filesystem.hpp>
 #include <migraphx/errors.hpp>
+#include <tchar.h>
+
+#define BUFSIZE MAX_PATH
+    
+std::string get_cwd()
+{
+    char Buffer[BUFSIZE];
+    DWORD dwRet;
+    dwRet = GetCurrentDirectory(BUFSIZE, Buffer);
+    if(dwRet == 0)
+        MIGRAPHX_THROW("GetCurrentDirectory failed (" + std::to_string(GetLastError()) + ")");
+    return std::string(Buffer);
+}
 
 TEST_CASE(string_data)
 {
-    auto child_path = migraphx::fs::path{"C:/develop/AMDMIGraphX/build/bin"};
+    std::string cwd = get_cwd();
+    auto child_path = migraphx::fs::path{cwd};
 
-    std::string string_data = "Parent string \0";
+    std::string string_data = "Parent string";
 
     // write string data to child process
     migraphx::process{"test_child.exe"}.cwd(child_path).write([&](auto writer) {
@@ -28,13 +42,13 @@ TEST_CASE(string_data)
     // DWORD bytes_read;
     // TCHAR buffer[BUFFER_SIZE];
     // for(;;)
-    //{
+    // {
     //     BOOL status = ReadFile(std_in, buffer, BUFFER_SIZE, &bytes_read, nullptr);
     //     if(status == FALSE or bytes_read == 0)
     //         break;
 
     //    result.insert(result.end(), buffer, buffer + bytes_read);
-    //}
+    // }
 
     // EXPECT(result.data() == string_data);
 }
@@ -44,7 +58,8 @@ TEST_CASE(binary_data)
 
     // binary data
     std::vector<char> binary_data = {'B', 'i', 'n', 'a', 'r', 'y'};
-    auto child_path               = migraphx::fs::path{"C:/develop/AMDMIGraphX/build/bin"};
+    std::string cwd               = get_cwd();
+    auto child_path               = migraphx::fs::path{cwd};
 
     // write string data to child process
     migraphx::process{"test_child.exe"}.cwd(child_path).write([&](auto writer) {
