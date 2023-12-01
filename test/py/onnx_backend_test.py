@@ -134,7 +134,6 @@ def disabled_tests_onnx_1_7_0(backend_test):
     backend_test.exclude(r'test_hardmax_example_cpu')
     backend_test.exclude(r'test_hardmax_negative_axis_cpu')
     backend_test.exclude(r'test_hardmax_one_hot_cpu')
-    backend_test.exclude(r'test_matmulinteger_cpu')
     backend_test.exclude(r'test_maxpool_2d_uint8_cpu')
     backend_test.exclude(r'test_maxunpool_export_with_output_shape_cpu')
     backend_test.exclude(r'test_maxunpool_export_without_output_shape_cpu')

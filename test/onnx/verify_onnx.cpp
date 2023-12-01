@@ -1215,6 +1215,29 @@ TEST_CASE(lpnormalization_2norm)
     EXPECT(migraphx::verify::verify_rms_range(result_vector, gold));
 }
 
+TEST_CASE(matmulinteger_unsigned_test)
+{
+    migraphx::program p = migraphx::parse_onnx("matmulinteger_unsigned_test.onnx");
+    migraphx::compile_options gpu_opt;
+    gpu_opt.offload_copy = true;
+    p.compile(migraphx::make_target("ref"), gpu_opt);
+
+    migraphx::shape s0{migraphx::shape::uint8_type, {4, 3}};
+    std::vector<uint8_t> data0 = {11, 7, 3, 10, 6, 2, 9, 5, 1, 8, 4, 0};
+    migraphx::shape s1{migraphx::shape::uint8_type, {3, 2}};
+    std::vector<uint8_t> data1 = {1, 4, 2, 5, 3, 6};
+
+    migraphx::parameter_map pp;
+    pp["1"] = migraphx::argument(s0, data0.data());
+    pp["2"] = migraphx::argument(s1, data1.data());
+
+    auto result = p.eval(pp).back();
+    std::vector<int32_t> result_vector;
+    result.visit([&](auto output) { result_vector.assign(output.begin(), output.end()); });
+    std::vector<int32_t> gold = {-38, -83, -44, -98, -50, -113, -56, -128};
+    EXPECT(migraphx::verify::verify_rms_range(result_vector, gold));
+}
+
 TEST_CASE(mean_broadcast_test)
 {
     migraphx::program p = migraphx::parse_onnx("mean_broadcast_test.onnx");

@@ -62,9 +62,10 @@ struct parse_matmul : op_parser<parse_matmul>
             a1            = info.add_instruction(make_op("unsqueeze", {{"axes", {1}}}), args[1]);
         }
 
+        auto is_quant_dot = opd.op_name == "quant_dot";
         if(s0.dynamic() or s1.dynamic())
         {
-            if(opd.op_name == "quant_dot")
+            if(is_quant_dot)
             {
                 MIGRAPHX_THROW("PARSE_MATMUL: dynamic MatMulInteger not supported");
             }
@@ -111,7 +112,38 @@ struct parse_matmul : op_parser<parse_matmul>
                         make_op("multibroadcast", {{"out_lens", l1_broadcasted_lens}}), a1);
                 }
             }
-            dot_res = info.add_instruction(make_op(opd.op_name), ba0, ba1);
+
+            // MatMulInteger can accept uint8 as input type or have zero point values
+            // In these case fall back to dot with half float inputs
+            auto ba0_type          = ba0->get_shape().type();
+            auto ba1_type          = ba1->get_shape().type();
+            auto has_a0_zero_point = args.size() > 2;
+            auto has_a1_zero_point = args.size() > 3;
+            if(is_quant_dot and (ba0_type == migraphx::shape::uint8_type or
+                                 ba1_type == migraphx::shape::uint8_type or has_a0_zero_point))
+            {
+                // gpu implementation (gemm) only accepts floating point types for dot
+                ba0 = info.add_instruction(
+                    make_op("convert", {{"target_type", migraphx::shape::half_type}}), ba0);
+                ba1 = info.add_instruction(
+                    make_op("convert", {{"target_type", migraphx::shape::half_type}}), ba1);
+
+                if(has_a0_zero_point)
+                {
+                    ba0 = info.add_common_op("sub", ba0, args[2]);
+                }
+                if(has_a1_zero_point)
+                {
+                    ba1 = info.add_common_op("sub", ba1, args[3]);
+                }
+                dot_res = info.add_instruction(make_op("dot"), ba0, ba1);
+                dot_res = info.add_instruction(
+                    make_op("convert", {{"target_type", migraphx::shape::int32_type}}), dot_res);
+            }
+            else
+            {
+                dot_res = info.add_instruction(make_op(opd.op_name), ba0, ba1);
+            }
         }
 
         // squeeze the appended or prepended dimensions
