@@ -1218,9 +1218,7 @@ TEST_CASE(lpnormalization_2norm)
 TEST_CASE(matmulinteger_unsigned_test)
 {
     migraphx::program p = migraphx::parse_onnx("matmulinteger_unsigned_test.onnx");
-    migraphx::compile_options gpu_opt;
-    gpu_opt.offload_copy = true;
-    p.compile(migraphx::make_target("ref"), gpu_opt);
+    p.compile(migraphx::make_target("ref"));
 
     migraphx::shape s0{migraphx::shape::uint8_type, {4, 3}};
     std::vector<uint8_t> data0 = {11, 7, 3, 10, 6, 2, 9, 5, 1, 8, 4, 0};

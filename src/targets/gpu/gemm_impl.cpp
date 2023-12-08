@@ -196,7 +196,7 @@ struct gemm_impl
 
         arg_type    = get_type(input_shapes[0].type());
         output_type = arg_type;
-        if(output_type == rocblas_datatype_i8_r)
+        if(output_type == rocblas_datatype_i8_r or output_type == rocblas_datatype_u8_r)
         {
             output_type = rocblas_datatype_i32_r;
         }

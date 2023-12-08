@@ -113,32 +113,20 @@ struct parse_matmul : op_parser<parse_matmul>
                 }
             }
 
-            // MatMulInteger can accept uint8 as input type or have zero point values
-            // In these case fall back to dot with half float inputs
-            auto ba0_type          = ba0->get_shape().type();
-            auto ba1_type          = ba1->get_shape().type();
-            auto has_a0_zero_point = args.size() > 2;
-            auto has_a1_zero_point = args.size() > 3;
-            if(is_quant_dot and (ba0_type == migraphx::shape::uint8_type or
-                                 ba1_type == migraphx::shape::uint8_type or has_a0_zero_point))
+            // parse a_zero_point and b_zero_point values
+            if(args.size() > 2)
             {
-                // gpu implementation (gemm) only accepts floating point types for dot
                 ba0 = info.add_instruction(
-                    make_op("convert", {{"target_type", migraphx::shape::half_type}}), ba0);
-                ba1 = info.add_instruction(
-                    make_op("convert", {{"target_type", migraphx::shape::half_type}}), ba1);
+                    make_op("convert", {{"target_type", migraphx::shape::float_type}}), ba0);
 
-                if(has_a0_zero_point)
+                ba0 = info.add_common_op("sub", ba0, args[2]);
+                if(args.size() > 3)
                 {
-                    ba0 = info.add_common_op("sub", ba0, args[2]);
-                }
-                if(has_a1_zero_point)
-                {
+                    ba1 = info.add_instruction(
+                        make_op("convert", {{"target_type", migraphx::shape::float_type}}), ba1);
                     ba1 = info.add_common_op("sub", ba1, args[3]);
                 }
                 dot_res = info.add_instruction(make_op("dot"), ba0, ba1);
-                dot_res = info.add_instruction(
-                    make_op("convert", {{"target_type", migraphx::shape::int32_type}}), dot_res);
             }
             else
             {
