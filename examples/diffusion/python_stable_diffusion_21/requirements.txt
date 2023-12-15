@@ -24,4 +24,5 @@
 accelerate
 diffusers
 optimum[onnxruntime]
+sentencepiece
 transformers
